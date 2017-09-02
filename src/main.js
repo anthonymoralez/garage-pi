@@ -1,16 +1,12 @@
 import { Accessory, Service, Characteristic, uuid } from 'hap-nodejs';
 import storage from 'node-persist';
 import doorController from './door';
+import hvacController from './hvac';
 import config from '../config.json';
 import Camera from './camera';
 const debug = require('debug')('controller:main');
 
 storage.initSync();
-
-debug(`accessory name: ${config.door.accessory.name}`);
-debug(`accessory username: ${config.door.accessory.username}`);
-debug(`accessory pincode: ${config.door.accessory.pincode}`);
-debug(`accessory port: ${config.door.accessory.port}`);
 
 debug(`accessory name: ${config.hvac.accessory.name}`);
 debug(`accessory username: ${config.hvac.accessory.username}`);
@@ -19,90 +15,66 @@ debug(`accessory port: ${config.hvac.accessory.port}`);
 
 
 async function controller() {
-  const doorUUID = uuid.generate(`hap-nodejs:accessories:${config.door.accessory.name}`);
-  const doorAccessory = exports.accessory = new Accessory(config.door.accessory.name, doorUUID);
   const hvacUUID = uuid.generate(`hap-nodejs:accessories:${config.hvac.accessory.name}`);
   const hvacAccessory = exports.accessory = new Accessory(config.hvac.accessory.name, hvacUUID);
 
-
-  // Door Accessory
-
-  doorAccessory
+  // HVAC Accessory
+  hvacAccessory
     .getService(Service.AccessoryInformation)
-    .setCharacteristic(Characteristic.Manufacturer, 'Manufacturer')
-    .setCharacteristic(Characteristic.Model, 'Model')
-    .setCharacteristic(Characteristic.SerialNumber, 'Serial Number');
+    .setCharacteristic(Characteristic.Manufacturer, 'Anthony Moralez')
+    .setCharacteristic(Characteristic.Model, 'HVAC-0.1')
+    .setCharacteristic(Characteristic.SerialNumber, '7');
 
-  doorAccessory.on('identify', function (paired, callback) {
-    doorController.identify();
-
+  hvacAccessory.on('identify', function(paired, callback) {
+    hvacController.identify();
     callback();
   });
 
-  const doorState = () => doorController.isDoorOpened()
-    ? Characteristic.TargetDoorState.OPEN
-    : Characteristic.TargetDoorState.CLOSED;
+  hvacAccessory
+    .addService(Service.Fan, 'Fan')
+    .setCharacteristic(Characteristic.On)
+      .on('set', function(value, callback) {
+        if (value) {
+          await hvacController.fan()
+        } else {
+          await hvacController.off()
+        }
+      })
+  heatCool = hvacAccessory.addService(Service.HeaterCooler)
+  heatCool
+    .getCharacteristic(Characteristic.Active)
+    .on('set', function(value, callback) {
+      debug('active set to ${value}')
+      hvacController.active(value)
+      callback()
+    })
+    .on('get', function(callback) {
+      callback(null, hvacController.getActive()|| Characteristic.Active.Inactive)
+    })
 
-  const initialDoorState = await doorState();
+  heatCool
+    .getCharacteristic(Characteristic.CurrentHeaterCoolerState)
+    .on('get', function(callback) {
+      callback(null, hvacController.currentState()||Characteristic.CurrentHeaterCoolerState.INACTIVE)
+    })
 
-  debug('initial door state', initialDoorState);
-
-  doorAccessory
-    .addService(Service.GarageDoorOpener, 'Garage Door')
-    .setCharacteristic(Characteristic.TargetDoorState, initialDoorState)
-    .getCharacteristic(Characteristic.TargetDoorState)
-    .on('set', async function(value, callback) {
-
-      if (value == Characteristic.TargetDoorState.CLOSED) {
-        doorAccessory
-          .getService(Service.GarageDoorOpener)
-          .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.CLOSING);
-
-        callback();
-
-        await doorController.openDoor();
-
-        const doorState = await doorState();
-
-
-        doorAccessory
-          .getService(Service.GarageDoorOpener)
-          .setCharacteristic(Characteristic.CurrentDoorState, doorStaet);
-      }
-      else if (value == Characteristic.TargetDoorState.OPEN) {
-        doorAccessory
-          .getService(Service.GarageDoorOpener)
-          .setCharacteristic(Characteristic.CurrentDoorState, Characteristic.CurrentDoorState.OPENING);
-
-        callback();
-
-        await doorController.closeDoor();
-
-        const doorState = await doorState();
-
-        doorAccessory
-          .getService(Service.GarageDoorOpener)
-          .setCharacteristic(Characteristic.CurrentDoorState, doorState);
-      }
-    });
-
-
-  doorAccessory
-    .getService(Service.GarageDoorOpener)
-    .getCharacteristic(Characteristic.CurrentDoorState)
-    .on('get', async function(callback) {
-
-      let err = null;
-
-      if (await doorController.isDoorOpened()) {
-        debug('door is open');
-        callback(err, Characteristic.CurrentDoorState.OPEN);
+  heatCool
+    .getCharacteristic(Characteristic.TargetHeaterCoolerState)
+    .on('set', function(value, callback) {
+      if (value == CurrentHeaterCoolerState.AUTO || value == CurrentHeaterCoolerState.COOL) {
+        hvacController.cool().catch(callback)
       } else {
-        debug('door is closed');
-        callback(err, Characteristic.CurrentDoorState.CLOSED);
+        hvacController.heat().catch(callback)
       }
-    });
+      hvacController.currentState = value
+      callback()
+    })
 
+  heatCool
+    .getCharacteristic(Characteristic.CurrentTemperature)
+    .on('get', function(callback) {
+      callback(23.0)
+    });
 }
 
 controller();
