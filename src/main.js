@@ -12,20 +12,18 @@ debug(`accessory username: ${config.door.accessory.username}`);
 debug(`accessory pincode: ${config.door.accessory.pincode}`);
 debug(`accessory port: ${config.door.accessory.port}`);
 
-debug(`camera name: ${config.camera.accessory.name}`);
-debug(`camera username: ${config.camera.accessory.username}`);
-debug(`camera pincode: ${config.camera.accessory.pincode}`);
-debug(`camera port: ${config.camera.accessory.port}`);
+debug(`accessory name: ${config.hvac.accessory.name}`);
+debug(`accessory username: ${config.hvac.accessory.username}`);
+debug(`accessory pincode: ${config.hvac.accessory.pincode}`);
+debug(`accessory port: ${config.hvac.accessory.port}`);
+
 
 async function controller() {
   const doorUUID = uuid.generate(`hap-nodejs:accessories:${config.door.accessory.name}`);
   const doorAccessory = exports.accessory = new Accessory(config.door.accessory.name, doorUUID);
+  const hvacUUID = uuid.generate(`hap-nodejs:accessories:${config.hvac.accessory.name}`);
+  const hvacAccessory = exports.accessory = new Accessory(config.hvac.accessory.name, hvacUUID);
 
-
-  const cameraSource = new Camera();
-
-  const cameraUUID = uuid.generate(`hap-nodejs:accessories:${config.camera.accessory.name}`);
-  const cameraAccessory = exports.camera = new Accessory(config.camera.accessory.name, cameraUUID);
 
   // Door Accessory
 
@@ -105,30 +103,6 @@ async function controller() {
       }
     });
 
-  // Camera Accessory
-
-  cameraAccessory.configureCameraSource(cameraSource);
-
-  cameraAccessory.identify, (paired, callback) => {
-    callback();
-  }
-
-  debug('publish door accessory');
-  doorAccessory.publish({
-    port: config.door.accessory.port,
-    username: config.door.accessory.username,
-    pincode: config.door.accessory.pincode,
-    category: Accessory.Categories.GARAGE_DOOR_OPENER,
-  });
-
-
-  debug('publish camera accessory');
-  cameraAccessory.publish({
-    port: config.camera.accessory.port,
-    username: config.camera.accessory.username,
-    pincode: config.camera.accessory.pincode,
-    category: Accessory.Categories.CAMERA,
-  });
 }
 
 controller();

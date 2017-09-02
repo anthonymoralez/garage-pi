@@ -1,4 +1,17 @@
 {
+  "hvac": {
+    "accessory": {
+      "name": "HVAC",
+      "username": "76:54:32:10:FE:DC",
+      "pincode": "567-89-012",
+      "port": 51827
+    },
+    "pins": {
+      "fan": 11,
+      "cool": 13,
+      "heat": 15
+    }
+  },
   "door": {
     "accessory": {
       "name": "Garage Door",
@@ -7,7 +20,7 @@
       "port": 51826
     },
     "pins": {
-      "toggle": 11,
+      "toggle": 29,
       "closed": 7
     }
   },
